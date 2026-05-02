@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter.simpledialog import askstring
 
 root = Tk()
 root.title("pyQuadrilateral Breakers")
@@ -20,12 +21,16 @@ block2_health = start_health
 health1 = canvas.create_text(180, 180, text=block1_health, anchor = "center", font=("TkMenuFont",25))
 health2 = canvas.create_text(460, 180, text=block2_health, anchor = "center", font=("TkMenuFont",25))
 
+ball1extrainfo = str
+ball2extrainfo = str
+
 ball_colors = {
     "Speedy" : "#ff0000",
     "Slammy" : "#bf7830",
     "Gravitron" : "#ffff00",
     "Basic Ball" : "#ffffff",
-    "Spawner": "#0000ff"
+    "Spawner": "#0000ff",
+    "Duplicator" : "#ff00ff"
 }
 balls_list = []
 
@@ -38,6 +43,7 @@ class Ball:
         self.ypos = canvas.coords(self.ball)[1]
         self.size = int(canvas.gettags(self.ball)[0])
         self.components = canvas.gettags(self.ball)[1]
+        self.can_duplicate = False
 
         if self.xpos < 320: self.side = "left"
         else: self.side = "right"
@@ -105,7 +111,7 @@ class Ball:
         elif "Gravitron" in self.components:
             self.gravity += 0.0075
         elif "Spawner" in self.components:
-            spawnBall(x=self.xpos, components=["Basic Ball"])
+            spawnBall(x=self.xpos, components=[ball1extrainfo if self.side == "left" else ball2extrainfo])
 
     def block_health(self):
         if self.side == "left":
@@ -135,29 +141,30 @@ def startBall(size=None, x=None, components=None):
 def spawnBall(x, components, size:int=20):
     balls_list.append(Ball(ball=startBall(size=size, x=x, components=components)))
 
+frames = 1
+
 def game_loop():
+    global frames
     for ball in balls_list:
         ball.yvel += ball.gravity
         ball.move_ball()
-
+        if frames % 300 == 0 and ball.can_duplicate:
+            if "Duplicator" in ball.components:
+                spawnBall(x=ball.xpos, components=["Duplicator"])
+        ball.can_duplicate = True
+    frames += 1
     root.after(16, game_loop)
 
 ball1 = StringVar()
 ball2 = StringVar()
 
+sob = []
+
 def start_game():
     title.destroy()
     start_button.destroy()
-    b1.destroy()
-    b2.destroy()
-    b3.destroy()
-    b4.destroy()
-    b5.destroy()
-    b6.destroy()
-    b7.destroy()
-    b8.destroy()
-    b9.destroy()
-    b10.destroy()
+    global sob
+    [item.destroy() for item in sob]
 
     canvas.grid(row=0,column=0)
     spawnBall(x=180,components=[ball1.get()])
@@ -165,32 +172,37 @@ def start_game():
 
     game_loop()
 
+def onclick(ball, side):
+    global sob
+    global ball1extrainfo
+    global ball2extrainfo
+    if ball == "Spawner":
+        if side == 1:
+            ball1extrainfo = askstring("Input","Ball to summon")
+        else:
+            ball2extrainfo = askstring("Input","Ball to summon")
+
 title = Label(root, text="pyQuadrilateral Breakers", font=("TkMenuFont",25))
 title.grid(row=0,columnspan=3)
 
-b1 = ttk.Radiobutton(root,text="Speedy", variable=ball1, value="Speedy")
-b1.grid(row=1, column=0)
-b2 = ttk.Radiobutton(root,text="Slammy", variable=ball1, value="Slammy")
-b2.grid(row=2, column=0)
-b3 = ttk.Radiobutton(root,text="Gravitron", variable=ball1, value="Gravitron")
-b3.grid(row=3, column=0)
-b4 = ttk.Radiobutton(root,text="Basic Ball", variable=ball1, value="Basic Ball")
-b4.grid(row=4, column=0)
-b5 = ttk.Radiobutton(root,text="Spawner", variable=ball1, value="Spawner")
-b5.grid(row=5, column=0)
+selectable_balls = 5
 
-b6 = ttk.Radiobutton(root,text="Speedy", variable=ball2, value="Speedy")
-b6.grid(row=1, column=2)
-b7 = ttk.Radiobutton(root,text="Slammy", variable=ball2, value="Slammy")
-b7.grid(row=2, column=2)
-b8 = ttk.Radiobutton(root,text="Gravitron", variable=ball2, value="Gravitron")
-b8.grid(row=3, column=2)
-b9 = ttk.Radiobutton(root,text="Basic Ball", variable=ball2, value="Basic Ball")
-b9.grid(row=4, column=2)
-b10 = ttk.Radiobutton(root,text="Spawner", variable=ball2, value="Spawner")
-b10.grid(row=5, column=2)
+def add_button(name):
+    global sob
+    global selectable_balls
+    sob.append(ttk.Radiobutton(root, text=name, variable=ball1, value=name, command=lambda:onclick(name,1)))
+    sob[len(sob)-1].grid(row=(len(sob) // 2)+1, column=0, sticky=W)
+    sob.append(ttk.Radiobutton(root, text=name, variable=ball2, value=name, command=lambda:onclick(name,2)))
+    sob[len(sob)-1].grid(row=(len(sob) // 2), column=2, sticky=W)
+
+add_button("Speedy")
+add_button("Slammy")
+add_button("Duplicator")
+add_button("Gravitron")
+add_button("Basic Ball")
+add_button("Spawner")
 
 start_button = Button(root, text="    Start!    ", command=start_game, bg="#0080ff")
-start_button.grid(row=6,column=1)
+start_button.grid(row=(len(sob) // 2)+1,column=1)
 
 root.mainloop()
