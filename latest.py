@@ -27,10 +27,12 @@ ball2extrainfo = str
 ball_colors = {
     "Speedy" : "#ff0000",
     "Slammy" : "#bf7830",
+    "Duplicator": "#ff00ff",
     "Gravitron" : "#ffff00",
+    "Splodey": "#ff8000",
     "Basic Ball" : "#ffffff",
     "Spawner": "#0000ff",
-    "Duplicator" : "#ff00ff"
+    "Bomb" : "#000000"
 }
 balls_list = []
 
@@ -51,6 +53,7 @@ class Ball:
         self.speed = 1
         self.damage = 1
         self.gravity = 0.25
+        self.bombs = 0
 
         self.threehund = 300 - self.size
 
@@ -75,6 +78,9 @@ class Ball:
             self.yvel = -1 * abs(self.yvel)
             damage_block(self.side, self.damage)
             self.on_hit()
+            if "Bomb" in self.components:
+                balls_list.remove(self)
+                canvas.delete(self.ball)
 
         # Ceiling collisions
         if self.ypos <= 60:
@@ -110,6 +116,8 @@ class Ball:
             self.damage += 1
         elif "Gravitron" in self.components:
             self.gravity += 0.0075
+        elif "Splodey" in self.components:
+            self.bombs += 1
         elif "Spawner" in self.components:
             spawnBall(x=self.xpos, components=[ball1extrainfo if self.side == "left" else ball2extrainfo])
 
@@ -148,12 +156,18 @@ def game_loop():
     for ball in balls_list:
         ball.yvel += ball.gravity
         ball.move_ball()
+        if frames % 120 == 0:
+            if "Splodey" in ball.components:
+                for i in range(0, ball.bombs):
+                    from random import randint
+                    spawnBall(x=ball.xpos+randint(-10, 10), components=["Bomb"], size=6)
+
         if frames % 300 == 0 and ball.can_duplicate:
             if "Duplicator" in ball.components:
                 spawnBall(x=ball.xpos, components=["Duplicator"])
         ball.can_duplicate = True
     frames += 1
-    root.after(16, game_loop)
+    root.after(17 if frames % 3 == 0 else 16, game_loop)
 
 ball1 = StringVar()
 ball2 = StringVar()
@@ -199,6 +213,7 @@ add_button("Speedy")
 add_button("Slammy")
 add_button("Duplicator")
 add_button("Gravitron")
+add_button("Splodey")
 add_button("Basic Ball")
 add_button("Spawner")
 
